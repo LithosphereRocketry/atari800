@@ -1110,6 +1110,22 @@ int PLATFORM_Keyboard(void)
 	}
 #endif
 
+	static int keyup_todo = FALSE;
+	if(keyup_todo) {
+		keyup_todo = FALSE;
+		lastkey = event.key.keysym.sym;
+		lastuni = 0; /* event.key.keysym.unicode is not defined for KEYUP */
+		key_pressed = 0;
+#if !defined(SDL12_COMPAT_HEADERS) || SDL_VERSIONNUM >= 1270
+		/* ugly hack to fix broken SDL CAPSLOCK*/
+		/* Because SDL is only sending Keydown and keyup for every change
+			* of state of the CAPSLOCK status, rather than the actual key.*/
+		if(lastkey == SDLK_CAPSLOCK) {
+			key_pressed = 1;
+		}
+#endif
+	}
+
 	while (!keyboad_event_found && SDL_PollEvent(&event)) {
 		switch (event.type) {
 		case SDL_KEYDOWN:
@@ -1147,18 +1163,7 @@ int PLATFORM_Keyboard(void)
 				|| (event.key.keysym.sym == SDLK_RCTRL)
 			        || (event.key.keysym.sym == SDLK_CAPSLOCK))
 				break;
-
-			lastkey = event.key.keysym.sym;
- 			lastuni = 0; /* event.key.keysym.unicode is not defined for KEYUP */
-			key_pressed = 0;
-#if !defined(SDL12_COMPAT_HEADERS) || SDL_VERSIONNUM >= 1270
-			/* ugly hack to fix broken SDL CAPSLOCK*/
-			/* Because SDL is only sending Keydown and keyup for every change
-			 * of state of the CAPSLOCK status, rather than the actual key.*/
-			if(lastkey == SDLK_CAPSLOCK) {
-				key_pressed = 1;
-			}
-#endif
+			keyup_todo = TRUE;
 			break;
 #if SDL2
 		case SDL_TEXTINPUT:
